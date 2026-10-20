@@ -3,3 +3,5 @@ uvicorn>=0.29
 sqlalchemy>=2.0
 numpy>=1.26
 tzdata>=2024.1
+# Postgres driver (used when WORDI_DB_URL is a postgres:// URL, e.g. Neon)
+psycopg[binary]>=3.1

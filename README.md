@@ -56,7 +56,7 @@ Environment variables (all optional):
 
 | variable | default | |
 |---|---|---|
-| `WORDI_DB_URL` | `sqlite:///data/wordi.db` | SQLAlchemy URL |
+| `WORDI_DB_URL` | `sqlite:///data/wordi.db` | SQLite or Postgres (`postgresql://…`, e.g. Neon) |
 | `WORDI_VECTORS` | `data/vectors/he.npz` | |
 | `WORDI_NEIGHBORS` | `data/vectors/neighbors.npz` | |
 | `WORDI_SECRET_WORDS` | `data/secret_words.json` | |
@@ -77,12 +77,33 @@ Environment variables (all optional):
 The frontend also works over plain HTTP on the local network (no secure context): player ids and
 "copy result" fall back to APIs that don't require HTTPS.
 
+### Free hosting: Render + Neon
+
+Render's free web service has an ephemeral disk (SQLite would be wiped on every restart) and sleeps
+after ~15 minutes idle (the next visit takes ~30–60 s to wake). Keep the data in a free Neon Postgres:
+
+1. **Neon** (neon.tech): create a project and copy its connection string
+   (`postgresql://user:password@….neon.tech/neondb?sslmode=require`).
+2. **Render** (render.com): *New → Web Service*, pick this repository and branch. Render detects the
+   `Dockerfile`; choose the **Free** instance type and add environment variables:
+   - `WORDI_DB_URL` = the Neon connection string
+   - `WORDI_TRUST_PROXY` = `1`
+
+   (Or *New → Blueprint*, which reads `render.yaml` and asks for `WORDI_DB_URL`.)
+3. The first build downloads and prepares the Hebrew vectors (a few minutes). When the service is
+   live, open its `https://….onrender.com` URL; `/api/health` reports the vocabulary size.
+
+Tables are created automatically on first start. The app uses ~200 MB of RAM with 50K words.
+
 ### Docker
 
+The image builds the vectors itself (`--build-arg VECTORS=demo` for synthetic ones, or
+`--build-arg VOCAB_SIZE=30000`):
+
 ```bash
-python scripts/prepare_vectors.py            # on the host, once
 docker build -t wordi .
-docker run -p 8000:8000 -v "$PWD/data/vectors:/app/data/vectors:ro" -v wordi-db:/app/data/db wordi
+docker run -p 8000:8000 -v wordi-db:/app/data/db wordi                       # SQLite in a volume
+docker run -p 8000:8000 -e WORDI_DB_URL="postgresql://…" wordi               # or Postgres
 ```
 
 ### Rebuilding the CSS
@@ -97,6 +118,7 @@ cd tailwind && npm install && npm run build      # or: npm run watch
 
 ```bash
 pytest
+WORDI_TEST_DB_URL="postgresql://user@localhost/wordi_test" pytest   # same suite on Postgres (drops its tables!)
 ```
 
 Covers Hebrew normalisation and prefix stripping, similarity and rank logic, the neighbour cache,

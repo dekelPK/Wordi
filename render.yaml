@@ -1,0 +1,14 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: wordi
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      # Postgres connection string from Neon (or any Postgres). Render asks for it on setup.
+      - key: WORDI_DB_URL
+        sync: false
+      # Render's proxy sets X-Forwarded-For; rate-limit by the real client IP.
+      - key: WORDI_TRUST_PROXY
+        value: "1"

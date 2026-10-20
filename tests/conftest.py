@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+import os
+from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
@@ -8,7 +9,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from wordi.config import Settings
+from wordi.db import make_engine
 from wordi.main import create_app
+from wordi.models import Base
 from wordi.vectors import VectorModel
 
 SECRETS = ["כלב", "חתול", "שולחן", "ים"]
@@ -54,11 +57,28 @@ def clock() -> FakeClock:
     return FakeClock(datetime(2026, 3, 10, 10, 0, tzinfo=UTC))
 
 
+# Set WORDI_TEST_DB_URL (e.g. postgresql://user@host/db) to run the suite against Postgres.
+# The database's tables are dropped before and after every test.
+TEST_DB_URL = os.environ.get("WORDI_TEST_DB_URL")
+
+
 @pytest.fixture
-def app_factory(model: VectorModel, clock: FakeClock, tmp_path) -> Callable[..., TestClient]:
+def db_url(tmp_path) -> Iterator[str]:
+    if not TEST_DB_URL:
+        yield f"sqlite:///{tmp_path / 'test.db'}"
+        return
+    engine = make_engine(TEST_DB_URL)
+    Base.metadata.drop_all(engine)
+    yield TEST_DB_URL
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture
+def app_factory(model: VectorModel, clock: FakeClock, tmp_path, db_url: str) -> Callable[..., TestClient]:
     def build(rate_limit: bool = False) -> TestClient:
         settings = Settings(
-            db_url=f"sqlite:///{tmp_path / 'test.db'}",
+            db_url=db_url,
             web_dir=tmp_path / "no-web",
             epoch=date(2026, 1, 1),
             rate_limit_enabled=rate_limit,

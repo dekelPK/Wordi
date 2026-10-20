@@ -7,8 +7,20 @@ from sqlalchemy.pool import StaticPool
 from .models import Base
 
 
+def normalize_url(url: str) -> str:
+    """Accept the plain postgres URLs that hosting providers hand out (Neon, Render, …)."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix) :]
+    return url
+
+
 def make_engine(url: str) -> Engine:
+    url = normalize_url(url)
     kwargs: dict = {}
+    if url.startswith("postgresql"):
+        # Serverless Postgres (e.g. Neon) drops idle connections: check before use, recycle often.
+        kwargs.update(pool_pre_ping=True, pool_recycle=300, pool_size=5, max_overflow=5)
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
         if url in ("sqlite://", "sqlite:///:memory:"):

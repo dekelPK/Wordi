@@ -49,6 +49,7 @@ def create_app(
 
     calendar = DailyCalendar.create(words, settings.epoch, settings.daily_salt, settings.timezone)
     engine = make_engine(settings.db_url)
+    log.info("Database: %s", engine.url.get_backend_name())
 
     app = FastAPI(title="Wordi", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
