@@ -66,6 +66,17 @@ Environment variables (all optional):
 | `WORDI_TRUST_PROXY` | `0` | `1` = rate-limit by `X-Forwarded-For` (only behind your own proxy) |
 | `WORDI_RATE_LIMIT` | `1` | `0` disables rate limiting |
 
+### On an iPhone
+
+- **Same Wi-Fi as your computer:** run with `--host 0.0.0.0`, find the computer's local IP
+  (macOS: `ipconfig getifaddr en0`, Windows: `ipconfig`) and open `http://<ip>:8000` in Safari.
+- **Home-screen app:** in Safari tap Share → *Add to Home Screen*. The page has a web manifest,
+  an apple-touch-icon and safe-area padding, so it opens full-screen like an app.
+- **Anywhere:** deploy the server (e.g. the Docker image on any host with HTTPS) and open its URL.
+
+The frontend also works over plain HTTP on the local network (no secure context): player ids and
+"copy result" fall back to APIs that don't require HTTPS.
+
 ### Docker
 
 ```bash

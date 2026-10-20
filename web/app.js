@@ -26,11 +26,22 @@ const LS = {
 
 // --- player identity ---------------------------------------------------------
 
+// crypto.randomUUID only exists in secure contexts (HTTPS / localhost); an iPhone opening
+// http://<computer-ip>:8000 on the home network doesn't have it.
+function uuid4() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 function playerId() {
   let pid = LS.get("pid");
   if (!pid || !/^[0-9a-f-]{36}$/i.test(pid)) {
     const cookie = document.cookie.match(/(?:^|;\s*)wordi_pid=([0-9a-f-]{36})/i);
-    pid = cookie ? cookie[1] : crypto.randomUUID();
+    pid = cookie ? cookie[1] : uuid4();
     LS.set("pid", pid);
   }
   document.cookie = `wordi_pid=${pid}; max-age=31536000; path=/; samesite=lax`;
@@ -223,11 +234,12 @@ function renderGuesses() {
   const sess = state.session;
   const guesses = sess ? sess.guesses : [];
   const secret = sess?.secret ?? null;
-  const latest = guesses.find((g) => g.seq === state.latestSeq);
+  // the latest guess is pinned above the sorted list (once there is a list to pin it above)
+  const latest = guesses.length > 1 ? guesses.find((g) => g.seq === state.latestSeq) : undefined;
   $("latest-body").replaceChildren(...(latest ? [guessRow(latest, { highlight: true, secret })] : []));
   const sorted = [...guesses].sort((a, b) => b.similarity - a.similarity || a.seq - b.seq);
   $("guesses-body").replaceChildren(...sorted.map((g) => guessRow(g, { highlight: g.seq === state.latestSeq, secret })));
-  if (latest && sorted.length > 1) {
+  if (latest) {
     $("latest-body").lastChild.classList.add("border-b-4", "border-b-indigo-200", "dark:border-b-indigo-900");
   }
   $("empty-state").classList.toggle("hidden", guesses.length > 0);
@@ -497,19 +509,38 @@ function shareText() {
   return lines.join("\n");
 }
 
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  // fallback for plain-HTTP pages, where the Clipboard API is unavailable
+  const ta = el("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.cssText = "position:fixed;top:0;opacity:0";
+  $("result-dialog").append(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length); // iOS ignores select() alone
+  const ok = document.execCommand("copy");
+  ta.remove();
+  return ok ? Promise.resolve() : Promise.reject(new Error("copy failed"));
+}
+
 async function share() {
   const text = shareText();
-  try {
-    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+  if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+    try {
       await navigator.share({ text });
       return;
+    } catch (e) {
+      if (e.name === "AbortError") return; // user closed the share sheet
     }
-    await navigator.clipboard.writeText(text);
-    $("share-btn").textContent = "הועתק ✓";
-    setTimeout(() => ($("share-btn").textContent = "שיתוף 📤"), 2000);
-  } catch {
-    /* user cancelled */
   }
+  try {
+    await copyText(text);
+    $("share-btn").textContent = "הועתק ✓";
+  } catch {
+    $("share-btn").textContent = "ההעתקה נכשלה";
+  }
+  setTimeout(() => ($("share-btn").textContent = "שיתוף 📤"), 2000);
 }
 
 async function submitName(ev) {

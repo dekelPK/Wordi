@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -17,6 +18,7 @@ from .vectors import VectorModel
 from .words import DailyCalendar, load_secret_words
 
 log = logging.getLogger("wordi")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 
 def create_app(

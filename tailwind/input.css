@@ -2,7 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* inputs under 16px make iOS Safari zoom in on focus */
+  input {
+    font-size: max(16px, 1em);
+  }
+}
+
 @layer components {
+  /* keep content clear of the notch / home indicator when installed to the home screen */
+  .safe-area {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  button {
+    touch-action: manipulation; /* no double-tap zoom delay */
+  }
   .icon-btn {
     @apply grid h-10 w-10 place-items-center rounded-full text-lg hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:hover:bg-slate-800;
   }

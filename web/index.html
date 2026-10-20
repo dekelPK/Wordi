@@ -3,14 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="וורדי">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="description" content="וורדי — משחק ניחוש מילים סמנטי בעברית">
   <title>וורדי</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="stylesheet" href="app.css">
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
-  <div class="mx-auto flex min-h-screen max-w-xl flex-col px-4 pb-10">
+<body class="min-h-[100dvh] bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  <div class="safe-area mx-auto flex min-h-[100dvh] max-w-xl flex-col px-4 pb-10">
 
     <header class="flex items-center justify-between py-3">
       <div>
@@ -91,8 +99,8 @@
     <form id="name-form" class="mt-4 hidden rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
       <label for="name-input" class="text-sm font-medium">הכניסו שם לטבלת המובילים</label>
       <div class="mt-2 flex gap-2">
-        <input id="name-input" required minlength="2" maxlength="20" autocomplete="nickname"
-               class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
+        <input id="name-input" enterkeyhint="send" required minlength="2" maxlength="20" autocomplete="nickname"
+               class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base dark:border-slate-600 dark:bg-slate-900">
         <button class="btn-primary" type="submit">שליחה</button>
       </div>
       <p id="name-error" class="mt-1 min-h-[1.25rem] text-xs text-rose-600"></p>
