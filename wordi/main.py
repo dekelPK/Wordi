@@ -44,17 +44,23 @@ def create_app(
     words = secret_words if secret_words is not None else load_secret_words(settings.secret_words_path)
     missing = [w for w in words if w not in model]
     if missing:
-        log.warning("%d secret words are not in the vocabulary and were skipped: %s", len(missing), missing[:20])
-    words = [w for w in words if w in model]
+        log.warning(
+            "%d secret words are not in the vocabulary (days that fall on them get a substitute): %s",
+            len(missing),
+            missing[:20],
+        )
+    available = [w for w in words if w in model]
 
-    calendar = DailyCalendar.create(words, settings.epoch, settings.daily_salt, settings.timezone)
+    calendar = DailyCalendar.create(
+        words, settings.epoch, settings.daily_salt, settings.timezone, available=set(available)
+    )
     engine = make_engine(settings.db_url)
     log.info("Database: %s", engine.url.get_backend_name())
 
     app = FastAPI(title="Wordi", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.settings = settings
     app.state.session_factory = make_session_factory(engine)
-    app.state.game = GameService(model, calendar, words, k=settings.neighbors_k)
+    app.state.game = GameService(model, calendar, available, k=settings.neighbors_k)
     app.state.clock = clock
 
     @app.exception_handler(GameError)

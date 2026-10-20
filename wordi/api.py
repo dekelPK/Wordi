@@ -129,7 +129,12 @@ def _session_for(
 
 @router.get("/health")
 def health(game: Game) -> dict[str, int | str]:
-    return {"status": "ok", "vocabulary": len(game.model), "secret_words": len(game.calendar.words)}
+    return {
+        "status": "ok",
+        "vocabulary": len(game.model),
+        "secret_words": len(game.calendar.available),
+        "secret_words_total": len(game.calendar.words),
+    }
 
 
 @router.get("/daily-info", response_model=DailyInfo)

@@ -48,3 +48,19 @@ def test_next_reset_is_local_midnight() -> None:
     c = cal()
     reset = c.next_reset(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
     assert reset.astimezone(UTC) == datetime(2026, 1, 10, 22, 0, tzinfo=UTC)
+
+
+def test_missing_words_do_not_shift_other_days() -> None:
+    full = cal()
+    missing = {full.word_for_puzzle(3), full.word_for_puzzle(10)}
+    partial = DailyCalendar.create(WORDS, date(2026, 1, 1), "salt", "Asia/Jerusalem", available=set(WORDS) - missing)
+    for n in range(1, 60):
+        if full.word_for_puzzle(n) in missing:
+            # substitute: deterministic and always playable
+            assert partial.word_for_puzzle(n) not in missing
+            again = DailyCalendar.create(
+                WORDS, date(2026, 1, 1), "salt", "Asia/Jerusalem", available=set(WORDS) - missing
+            )
+            assert partial.word_for_puzzle(n) == again.word_for_puzzle(n)
+        else:
+            assert partial.word_for_puzzle(n) == full.word_for_puzzle(n)
