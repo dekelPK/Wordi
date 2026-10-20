@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+data/vectors/*
+!data/vectors/.gitkeep
+data/*.db
+tailwind/node_modules/

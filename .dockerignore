@@ -1,0 +1,5 @@
+.git
+**/__pycache__
+tailwind/node_modules
+data/*.db*
+tests

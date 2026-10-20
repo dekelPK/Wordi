@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8
+httpx>=0.27
+# Optional: only needed by scripts/prepare_vectors.py --input for .bin / word2vec files
+gensim>=4.3

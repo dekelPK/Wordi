@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="וורדי — משחק ניחוש מילים סמנטי בעברית">
+  <title>וורדי</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  <div class="mx-auto flex min-h-screen max-w-xl flex-col px-4 pb-10">
+
+    <header class="flex items-center justify-between py-3">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400">וורדי</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400">ניחוש מילים לפי קרבה במשמעות</p>
+      </div>
+      <nav class="flex gap-1">
+        <button class="icon-btn" data-open="help-dialog" aria-label="איך משחקים">❔</button>
+        <button class="icon-btn" data-open="stats-dialog" aria-label="סטטיסטיקה">📊</button>
+        <button class="icon-btn" id="open-leaderboard" aria-label="טבלת המובילים">🏆</button>
+      </nav>
+    </header>
+
+    <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-200 p-1 dark:bg-slate-800" role="tablist" aria-label="מצב משחק">
+      <button class="mode-tab" role="tab" data-mode="daily">אתגר יומי</button>
+      <button class="mode-tab" role="tab" data-mode="free">משחק חופשי</button>
+    </div>
+
+    <section class="mt-3 rounded-xl bg-white p-3 text-sm shadow-sm dark:bg-slate-900" aria-live="polite">
+      <div class="flex items-baseline justify-between gap-2">
+        <h2 id="puzzle-title" class="font-bold">טוען…</h2>
+        <span id="countdown" class="text-xs tabular-nums text-slate-500 dark:text-slate-400"></span>
+      </div>
+      <p id="puzzle-stats" class="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300"></p>
+    </section>
+
+    <form id="guess-form" class="mt-3 flex gap-2" autocomplete="off">
+      <label for="guess-input" class="sr-only">ניחוש</label>
+      <input id="guess-input" name="word" type="text" inputmode="text" enterkeyhint="send" maxlength="30"
+             autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="הקלידו מילה…"
+             class="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-indigo-900">
+      <button id="guess-btn" type="submit" class="btn-primary px-5 text-lg">נחש</button>
+    </form>
+    <p id="message" class="mt-2 min-h-[1.5rem] text-sm font-medium" role="status"></p>
+
+    <div id="finished-banner" class="hidden rounded-xl bg-emerald-50 p-3 text-sm dark:bg-emerald-950/50"></div>
+
+    <div class="mt-2 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900">
+      <table class="w-full table-fixed text-sm">
+        <thead class="bg-slate-100 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+          <tr>
+            <th class="w-10 py-2 text-center font-medium">#</th>
+            <th class="py-2 text-start font-medium">מילה</th>
+            <th class="w-16 py-2 text-center font-medium">קרבה</th>
+            <th class="w-[34%] py-2 pe-3 text-start font-medium">מיקום</th>
+          </tr>
+        </thead>
+        <tbody id="latest-body"></tbody>
+        <tbody id="guesses-body"></tbody>
+      </table>
+      <p id="empty-state" class="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        עוד לא ניחשתם. התחילו בכל מילה — המספר יגיד לכם כמה היא קרובה במשמעות למילה הסודית.
+      </p>
+    </div>
+
+    <div class="mt-3 flex flex-wrap gap-2">
+      <button id="hint-btn" class="btn-secondary">💡 רמז</button>
+      <button id="giveup-btn" class="btn-secondary">🏳️ ויתור</button>
+      <button id="new-game-btn" class="btn-primary hidden">משחק חדש</button>
+      <button id="yesterday-btn" class="btn-ghost ms-auto">המילה של אתמול</button>
+    </div>
+
+    <footer class="mt-auto pt-8 text-center text-xs text-slate-400">
+      בהשראת <a class="underline" href="https://semantle.ishefi.com/" target="_blank" rel="noopener">סמנטעל</a>
+    </footer>
+  </div>
+
+  <!-- Result -->
+  <dialog id="result-dialog" class="dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="סגירה">✕</button></form>
+    <h2 id="result-title" class="text-xl font-bold"></h2>
+    <p id="result-word" class="mt-1 text-3xl font-extrabold text-indigo-600 dark:text-indigo-400"></p>
+    <dl class="mt-4 grid grid-cols-2 gap-2 text-center">
+      <div class="stat"><dt>ניחושים</dt><dd id="result-guesses"></dd></div>
+      <div class="stat"><dt>זמן</dt><dd id="result-time"></dd></div>
+    </dl>
+    <p id="result-note" class="mt-3 text-sm text-amber-700 dark:text-amber-400"></p>
+    <form id="name-form" class="mt-4 hidden rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
+      <label for="name-input" class="text-sm font-medium">הכניסו שם לטבלת המובילים</label>
+      <div class="mt-2 flex gap-2">
+        <input id="name-input" required minlength="2" maxlength="20" autocomplete="nickname"
+               class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
+        <button class="btn-primary" type="submit">שליחה</button>
+      </div>
+      <p id="name-error" class="mt-1 min-h-[1.25rem] text-xs text-rose-600"></p>
+    </form>
+    <div class="mt-4 flex gap-2">
+      <button id="share-btn" class="btn-primary flex-1" autofocus>שיתוף 📤</button>
+      <button id="result-leaderboard-btn" class="btn-secondary flex-1">🏆 טבלה</button>
+    </div>
+  </dialog>
+
+  <!-- Leaderboard -->
+  <dialog id="leaderboard-dialog" class="dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="סגירה">✕</button></form>
+    <h2 class="text-xl font-bold">🏆 טבלת המובילים</h2>
+    <div class="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-slate-200 p-1 text-sm dark:bg-slate-800" role="tablist">
+      <button class="lb-tab" data-scope="today">היום</button>
+      <button class="lb-tab" data-scope="yesterday">אתמול</button>
+      <button class="lb-tab" data-scope="alltime">כל הזמנים</button>
+    </div>
+    <div id="lb-sort" class="mt-2 hidden gap-2 text-xs">
+      <button class="lb-sort chip" data-sort="wins">הכי הרבה ניצחונות</button>
+      <button class="lb-sort chip" data-sort="fastest">הפתרונות המהירים</button>
+    </div>
+    <p id="lb-caption" class="mt-2 text-xs text-slate-500 dark:text-slate-400"></p>
+    <div class="mt-2 max-h-[55vh] overflow-y-auto">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0 bg-white text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+          <tr id="lb-head"></tr>
+        </thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+    </div>
+  </dialog>
+
+  <!-- Stats -->
+  <dialog id="stats-dialog" class="dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="סגירה">✕</button></form>
+    <h2 class="text-xl font-bold">📊 הסטטיסטיקה שלי</h2>
+    <p class="text-xs text-slate-500 dark:text-slate-400">אתגר יומי בלבד, נשמר במכשיר הזה</p>
+    <dl id="stats-grid" class="mt-4 grid grid-cols-3 gap-2 text-center"></dl>
+  </dialog>
+
+  <!-- Yesterday -->
+  <dialog id="yesterday-dialog" class="dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="סגירה">✕</button></form>
+    <h2 id="yesterday-title" class="text-xl font-bold"></h2>
+    <p id="yesterday-word" class="mt-1 text-3xl font-extrabold text-indigo-600 dark:text-indigo-400"></p>
+    <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">המילים הקרובות ביותר:</p>
+    <ol id="yesterday-list" class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm"></ol>
+  </dialog>
+
+  <!-- Help -->
+  <dialog id="help-dialog" class="dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="סגירה">✕</button></form>
+    <h2 class="text-xl font-bold">איך משחקים?</h2>
+    <div class="mt-3 space-y-2 text-sm leading-relaxed">
+      <p>צריך למצוא את המילה הסודית. כל ניחוש מקבל <b>ציון קרבה</b> (עד 100) — עד כמה המילה קרובה <b>במשמעות</b> למילה הסודית, לפי מודל שפה. זה לא קשור לאיות!</p>
+      <p>אם הניחוש נמצא בין 1,000 המילים הקרובות ביותר למילה הסודית, יופיע המיקום שלו: <b>1000/1000</b> היא המילה הקרובה ביותר.</p>
+      <p>בראש המסך מופיעה הקרבה של המילה הקרובה ביותר, העשירית והאלף — כדי שתדעו מה נחשב "חם".</p>
+      <p><b>אתגר יומי</b>: מילה אחת לכולם, מתחלפת בחצות (שעון ישראל). פתרון בלי רמזים נכנס לטבלת המובילים — לפי מספר ניחושים, ואז לפי זמן.</p>
+      <p><b>משחק חופשי</b>: מילה אקראית, כמה משחקים שרוצים.</p>
+      <p>אפשר להקליד גם עם תחיליות (״והבית״) — אם המילה לא מוכרת ננסה בלי ה, ו, ב, ל, מ, כ, ש.</p>
+    </div>
+  </dialog>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
